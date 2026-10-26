@@ -1,0 +1,96 @@
+{
+  "hero": {
+    "judul": "Magang BPJS Ketenagakerjaan Yogyakarta",
+    "subjudul": "Belajar langsung di kantor cabang, mengenal program jaminan sosial, dan berkontribusi untuk pekerja Indonesia."
+  },
+  "program": [
+    {
+      "kode": "JKK",
+      "desc": "Kecelakaan & penyakit akibat kerja.",
+      "gambar": "/program/JKK.png"
+    },
+    {
+      "kode": "JKM",
+      "desc": "Santunan untuk ahli waris.",
+      "gambar": "/program/JKM.png"
+    },
+    {
+      "kode": "JHT",
+      "desc": "Tabungan jangka panjang.",
+      "gambar": "/program/JHT.png"
+    },
+    {
+      "kode": "JP",
+      "desc": "Manfaat pensiun berkala.",
+      "gambar": "/program/JP.png"
+    },
+    {
+      "kode": "JKP",
+      "desc": "Dukungan saat kehilangan kerja.",
+      "gambar": "/program/JKP.png"
+    }
+  ],
+  "visi": "Mewujudkan Jaminan Sosial Ketenagakerjaan yang terpercaya, Berkelanjutan dan Menyejahterakan Seluruh Pekerja Indonesia.",
+  "misi": [
+    "Melindungi, Melayani & Menyejahterakan Pekerja dan Keluarga.",
+    "Memberikan rasa Aman, Mudah & Nyaman untuk Meningkatkan Produktivitas dan Daya Saing Peserta.",
+    "Memberikan Kontribusi dalam Pembangunan dan Perekonomian Bangsa dengan Tata Kelola Baik."
+  ],
+  "informasi": [
+    "Jika Magang bersama teman-teman mohon ditulis dengan teman nya sekalian dan dikoordinasikan dengan teman-teman.",
+    "Diprioritaskan magang Minimal 3 Bulan.",
+    "Jam Masuk magang pukul 07:45 - 17:00.",
+    "Mengikuti kegiatan olahraga yang sudah ditentukan oleh pihak BPJS Ketenagakerjaan.",
+    "Diwajibkan membawa KTP guna mengikuti kepesertaan Bukan Penerima Upah (BPU) BPJS Ketenagakerjaan Yogyakarta dengan iuran Rp.16.800,- (JKK-JKM).",
+    "Diwajibkan Memakai Jas Almamater dan laptop sewaktu diterima magang.",
+    "Mengenal Program BPJS Ketenagakerjaan dan bersedia menginformasikan kepada rekan, saudara/ Tetangga.",
+    "Membuat Video/Instagram/Tiktok tentang Program BPJS Ketenagakerjaan dan di Upload di link berikut Paling Lambat 1 Minggu setelah pendaftaran Pkl 12:00: https://drive.google.com/drive/u/2/folders/1ydMuBXbj78XXuuZo66eGlPNQ_FlQRn1k",
+    "Jika magang tidak diterima di Cabang Induk bersedia ditempatkan di KCP dengan Alamat berikut : Kacab Yogya : Jl. Urip Sumoharjo No 106 Yogyakarta, KCP Sleman, KCP Bantul, KCP Kulon Progo, dan KCP Gunung Kidul."
+  ],
+  "kontak": [
+    {
+      "nama": "Ardan",
+      "telp": "082134508855"
+    },
+    {
+      "nama": "Ibu Ida",
+      "telp": "08159489330"
+    },
+    {
+      "nama": "Ibu Rosita",
+      "telp": "081229761212"
+    },
+    {
+      "nama": "Bapak Jerry",
+      "telp": "081222723923"
+    },
+    {
+      "nama": "Ibu Eta",
+      "telp": "081779232928"
+    }
+  ],
+  "alamat": [
+    {
+      "nama": "Cabang Induk Yogyakarta",
+      "alamat": "Jl. Urip Sumoharjo No.106, Klitren, Kec. Gondokusuman, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55222"
+    },
+    {
+      "nama": "KCP Sleman",
+      "alamat": "Ruko Tridadi Square No. 3 & 4, Jl. Magelang, Tridadi, Kec. Sleman, Daerah Istimewa Yogyakarta 55285"
+    },
+    {
+      "nama": "KCP Bantul",
+      "alamat": "Jl. Ringroad Selatan No.Rt 07, Gonjen, Tamantirto, Kec. Kasihan, Kabupaten Bantul, Daerah Istimewa Yogyakarta 55184"
+    },
+    {
+      "nama": "KCP Kulon Progo",
+      "alamat": "45X7+9J3, Terbah, Pengasih, Kec. Pengasih, Kabupaten Kulon Progo, Daerah Istimewa Yogyakarta 55652"
+    },
+    {
+      "nama": "KCP Gunungkidul",
+      "alamat": "JBank Btn (Kepek), Jl. KH Agus Salim No.97B, Ledoksari, Kepek, Kec. Wonosari, Kabupaten Gunungkidul, Daerah Istimewa Yogyakarta 55813"
+    }
+  ],
+  "daftarUrl": "#",
+  "footer": "© 2026 BPJS Ketenagakerjaan • Kantor Cabang Yogyakarta"
+}
