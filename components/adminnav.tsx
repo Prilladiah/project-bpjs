@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 const tabs = [
   { href: "/admin", label: "Kelola konten" },
   { href: "/admin/pendaftar", label: "Data pendaftar" },
+  { href: "/admin/magang", label: "Peserta magang" },
+  { href: "/admin/kuota", label: "Kuota" },
   { href: "/admin/password", label: "Ubah password" },
 ];
 
