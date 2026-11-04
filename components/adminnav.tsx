@@ -8,6 +8,7 @@ const tabs = [
   { href: "/admin/magang", label: "Peserta magang" },
   { href: "/admin/kuota", label: "Kuota" },
   { href: "/admin/password", label: "Ubah password" },
+  { href: "/admin/notifikasi", label: "Notifikasi" },
 ];
 
 export default function AdminNav() {
