@@ -55,21 +55,17 @@ function susunEmail(groups: [string, Ev[]][]) {
   ].filter(Boolean);
   const subject = `[Magang BPJS] ${bagian.join(", ")}`;
 
-  const link = process.env.APP_URL ? `${process.env.APP_URL}/admin/magang` : "";
-  const text =
-    groups.map(([k, ev]) => `${k}\n${ev.map((e) => `- ${baris(e)}`).join("\n")}`).join("\n\n") +
-    (link ? `\n\nBuka dashboard: ${link}` : "");
+  const text = groups.map(([k, ev]) => `${k}\n${ev.map((e) => `* ${baris(e)}`).join("\n")}`).join("\n\n");
   const html =
     `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111">` +
     groups
       .map(
         ([k, ev]) =>
-          `<h3 style="margin:16px 0 6px">${esc(k)}</h3><ul style="margin:0;padding-left:20px">` +
+          `<p style="margin:16px 0 6px;font-weight:bold">${esc(k)}</p><ul style="margin:0;padding-left:20px">` +
           ev.map((e) => `<li style="margin:4px 0">${esc(baris(e))}</li>`).join("") +
           `</ul>`
       )
       .join("") +
-    (link ? `<p style="margin-top:20px"><a href="${esc(link)}">Buka dashboard peserta magang</a></p>` : "") +
     `</div>`;
   return { subject, text, html };
 }
@@ -145,29 +141,4 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
   return berhasil > 0
     ? { ok: true, pesan: `${berhasil} email terkirim.` }
     : { ok: false, pesan: "Email gagal dikirim. Lihat riwayat di bawah untuk penyebabnya." };
-}
-
-export async function kirimUji(): Promise<{ ok: boolean; pesan: string }> {
-  if (!emailSiap()) return { ok: false, pesan: BELUM_SIAP };
-  const cfg = await getConfig();
-  if (!cfg.admin.length) return { ok: false, pesan: "Isi email admin dulu." };
-  const subjek = "[Magang BPJS] Email uji";
-  const r: Riwayat = { waktu: new Date().toISOString(), subjek, ke: cfg.admin, ok: true };
-  try {
-    await kirimEmail(
-      cfg.admin,
-      subjek,
-      "Ini email uji dari website magang. Jika Anda menerima ini, pengaturan email sudah benar.",
-      "<p>Ini email uji dari website magang. Jika Anda menerima ini, pengaturan email sudah benar.</p>"
-    );
-  } catch (e) {
-    r.ok = false;
-    r.error = e instanceof Error ? e.message : "Gagal mengirim";
-  }
-  const log = await bacaLog();
-  log.riwayat.unshift(r);
-  await tulisLog(log);
-  return r.ok
-    ? { ok: true, pesan: `Email uji terkirim ke ${cfg.admin.join(", ")}.` }
-    : { ok: false, pesan: `Gagal: ${r.error}` };
 }
