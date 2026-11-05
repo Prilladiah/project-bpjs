@@ -1,5 +1,6 @@
 import { getKantor, HARI_SLOT_KEMBALI } from "./kantor";
 import { hitungKuota, listPeserta } from "./kuota";
+import { listPendaftar } from "./pendaftar";
 import { getConfig } from "./notifikasi-config";
 import { emailSiap, kirimEmail } from "./email";
 import { hariIni, selisihHari } from "./tanggal";
@@ -10,8 +11,11 @@ export const MILESTONE = [21, 14, 7, 3];
 // Email hanya dikirim pada jam kerja (WIB)
 const JAM_MULAI = 7;
 const JAM_SELESAI = 17;
+// Pendaftar baru diberi notifikasi maksimal sampai sekian hari setelah mendaftar
+const BATAS_HARI_BARU = 7;
 
 type Ev =
+  | { t: "baru"; nama: string; mulai?: string; selesai?: string }
   | { t: "keluar"; nama: string; selesai: string; sisa: number }
   | { t: "kuota"; buka: number; sisa: number; max: number };
 
@@ -34,6 +38,9 @@ export function jamKerja() {
   return j >= JAM_MULAI && j < JAM_SELESAI;
 }
 
+// Tanggal (yyyy-mm-dd, zona WIB) dari waktu ISO
+const tanggalWIB = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(iso));
+
 async function bacaLog(): Promise<Log> {
   const l = await redis.get<Partial<Log>>(LOG_KEY);
   return { terkirim: l?.terkirim ?? {}, kuota: l?.kuota ?? {}, riwayat: l?.riwayat ?? [] };
@@ -54,6 +61,10 @@ const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 function baris(e: Ev) {
+  if (e.t === "baru") {
+    const periode = e.mulai && e.selesai ? ` untuk periode ${tgl(e.mulai)} - ${tgl(e.selesai)}` : "";
+    return `${e.nama} baru mendaftar magang${periode}`;
+  }
   if (e.t === "keluar") {
     const kapan = e.sisa <= 0 ? "hari ini" : `${e.sisa} hari lagi`;
     const slot = e.sisa <= HARI_SLOT_KEMBALI ? " — slot kuota sudah dihitung kosong" : "";
@@ -64,9 +75,11 @@ function baris(e: Ev) {
 
 function susunEmail(groups: [string, Ev[]][]) {
   const semua = groups.flatMap(([, ev]) => ev);
+  const nBaru = semua.filter((e) => e.t === "baru").length;
   const nKeluar = semua.filter((e) => e.t === "keluar").length;
   const nKuota = semua.filter((e) => e.t === "kuota").length;
   const bagian = [
+    nBaru ? `${nBaru} pendaftar baru` : "",
     nKeluar ? `${nKeluar} peserta akan berakhir` : "",
     nKuota ? `kuota terbuka di ${nKuota} kantor` : "",
   ].filter(Boolean);
@@ -93,7 +106,13 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     return { ok: true, pesan: "Di luar jam kerja (07.00-17.00 WIB), email dikirim pada jam kerja berikutnya." };
   }
 
-  const [peserta, kuota, cfg, log] = await Promise.all([listPeserta(), hitungKuota(), getConfig(), bacaLog()]);
+  const [semuaPendaftar, peserta, kuota, cfg, log] = await Promise.all([
+    listPendaftar(),
+    listPeserta(),
+    hitungKuota(),
+    getConfig(),
+    bacaLog(),
+  ]);
   const today = hariIni();
   const grup: Record<string, Ev[]> = {};
   const tandai: string[] = [];
@@ -102,6 +121,17 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     grup[id].push(e);
   };
 
+  // 1) Pendaftar baru: dikirim mulai hari setelah mendaftar, berapa pun sisa harinya
+  for (const p of semuaPendaftar) {
+    if (!p.kantor || !getKantor(p.kantor)) continue;
+    if (log.terkirim[`baru:${p.id}`]) continue;
+    const umur = selisihHari(tanggalWIB(p.waktu), today);
+    if (umur < 1 || umur > BATAS_HARI_BARU) continue;
+    tambah(p.kantor, { t: "baru", nama: p.nama, mulai: p.tanggalMulai, selesai: p.tanggalSelesai });
+    tandai.push(`baru:${p.id}`);
+  }
+
+  // 2) Peserta yang akan keluar (H-21, H-14, H-7, H-3)
   for (const p of peserta) {
     if (!p.kantor || !getKantor(p.kantor)) continue;
     const sisa = selisihHari(today, p.tanggalSelesai);
@@ -111,6 +141,7 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     belum.forEach((m) => tandai.push(`keluar:${p.id}:${m}`));
   }
 
+  // 3) Slot kuota yang terbuka
   const sisaBaru: Record<string, number> = {};
   for (const k of kuota) {
     sisaBaru[k.kantor.id] = k.sisa;
