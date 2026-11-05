@@ -1,16 +1,23 @@
-import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
-import { getContent, saveContent } from "@/lib/content";
+import { Redis } from "@upstash/redis";
+import defaultContent from "@/data/content.json";
 
-export const dynamic = "force-dynamic";
-export const GET = async () => NextResponse.json(await getContent());
+// Fallback ke nama variabel lama (KV_*) kalau yang dipasang Vercel memakai nama itu
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN!,
+});
 
-export async function PUT(req: Request) {
-  const c = await req.json().catch(() => null);
-  const ok = c && c.hero && Array.isArray(c.program) && Array.isArray(c.misi) && Array.isArray(c.informasi) &&
-    Array.isArray(c.kontak) && Array.isArray(c.alamat) && typeof c.visi === "string";
-  if (!ok) return NextResponse.json({ error: "Data tidak valid" }, { status: 400 });
-  await saveContent(c);
-  revalidatePath("/");
-  return NextResponse.json({ ok: true });
+const KEY = "content";
+
+export async function getContent() {
+  try {
+    const data = await redis.get(KEY);
+    return data ?? defaultContent;
+  } catch {
+    return defaultContent;
+  }
+}
+
+export async function saveContent(content: unknown) {
+  await redis.set(KEY, content);
 }
