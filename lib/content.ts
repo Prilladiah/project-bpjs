@@ -1,7 +1,23 @@
-import { promises as fs } from "fs";
-import path from "path";
+import { Redis } from "@upstash/redis";
+import defaultContent from "@/data/content.json";
 import type { Content } from "@/types/content";
 
-const file = path.join(process.cwd(), "data", "content.json");
-export const getContent = async (): Promise<Content> => JSON.parse(await fs.readFile(file, "utf8"));
-export const saveContent = (c: Content) => fs.writeFile(file, JSON.stringify(c, null, 2), "utf8");
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN!,
+});
+
+const KEY = "content";
+
+export const getContent = async (): Promise<Content> => {
+  try {
+    const data = await redis.get<Content>(KEY);
+    return data ?? (defaultContent as unknown as Content);
+  } catch {
+    return defaultContent as unknown as Content;
+  }
+};
+
+export const saveContent = async (c: Content): Promise<void> => {
+  await redis.set(KEY, c);
+};
