@@ -15,7 +15,7 @@ export const KANTOR: Kantor[] = [
   { id: "kcp-sleman", nama: "KCP Sleman", jenis: "kcp" },
   { id: "kcp-bantul", nama: "KCP Bantul", jenis: "kcp" },
   { id: "kcp-wates", nama: "KCP Wates", jenis: "kcp" },
-  { id: "kcp-wonosari", nama: "KCP Wonosari", jenis: "kcp" },
+  { id: "kcp-wonosari", nama: "KCP Gunung Kidul", jenis: "kcp" },
 ];
 
 export const getKantor = (id: string) => KANTOR.find((k) => k.id === id);
