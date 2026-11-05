@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE, verifyToken } from "@/lib/auth";
-import { KANTOR } from "@/lib/kantor";
 import { getConfig, parseEmails, simpanConfig } from "@/lib/notifikasi-config";
 import { getRiwayat, MILESTONE } from "@/lib/notifikasi";
 import { emailSiap } from "@/lib/email";
@@ -9,16 +8,11 @@ import { emailSiap } from "@/lib/email";
 export const metadata = { title: "Notifikasi email" };
 export const dynamic = "force-dynamic";
 
-// Hanya kantor cabang yang punya kolom email mentor
-const CABANG = KANTOR.filter((k) => k.jenis === "cabang");
-
 async function simpan(formData: FormData) {
   "use server";
   if (!(await verifyToken(cookies().get(COOKIE)?.value))) return;
   const lama = await getConfig();
-  const mentor: Record<string, string[]> = { ...lama.mentor };
-  for (const k of CABANG) mentor[k.id] = parseEmails(String(formData.get(k.id) ?? ""));
-  await simpanConfig({ admin: parseEmails(String(formData.get("admin") ?? "")), mentor });
+  await simpanConfig({ admin: parseEmails(String(formData.get("admin") ?? "")), mentor: lama.mentor });
   redirect(`/admin/notifikasi?hasil=${encodeURIComponent("Pengaturan disimpan.")}`);
 }
 
@@ -49,23 +43,6 @@ export default async function Notifikasi({ searchParams }: { searchParams: { has
           Email admin (menerima semua kantor)
           <input name="admin" defaultValue={cfg.admin.join(", ")} placeholder="admin@contoh.com" className="field mt-1.5 font-normal" />
         </label>
-
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">Email mentor — Kantor Cabang</h2>
-          <div className="space-y-3">
-            {CABANG.map((k) => (
-              <label key={k.id} className="block text-sm font-semibold">
-                {k.nama}
-                <input
-                  name={k.id}
-                  defaultValue={(cfg.mentor[k.id] ?? []).join(", ")}
-                  placeholder="mentor@contoh.com"
-                  className="field mt-1.5 font-normal"
-                />
-              </label>
-            ))}
-          </div>
-        </section>
         <button className="btn btn-primary w-full sm:w-auto">Simpan penerima</button>
       </form>
 
