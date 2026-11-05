@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { simpanPendaftar } from "@/lib/pendaftar";
 import { getKantor } from "@/lib/kantor";
 import { hitungKuota } from "@/lib/kuota";
+import { jalankanNotifikasi } from "@/lib/notifikasi";
 import { MAX_BULAN, MIN_BULAN, parseIso, selisihBulan, tambahBulan } from "@/lib/tanggal";
 
 export const runtime = "nodejs";
@@ -55,6 +56,15 @@ export async function POST(req: Request) {
       { nama, email, hp, universitas, jurusan, durasi, kantor: kantor.id, tanggalMulai, tanggalSelesai },
       { cv: cv as Blob, surat: surat as Blob, proposal: proposal as Blob }
     );
+
+    // Cek notifikasi segera (terkirim hanya di jam kerja 07.00-17.00 WIB).
+    // Kegagalan email tidak membatalkan pendaftaran.
+    try {
+      await jalankanNotifikasi();
+    } catch (e) {
+      console.error("[/api/daftar] notifikasi", e);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error("[/api/daftar]", e);
