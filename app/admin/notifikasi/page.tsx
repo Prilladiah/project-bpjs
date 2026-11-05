@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { COOKIE, verifyToken } from "@/lib/auth";
 import { getConfig, parseEmails, simpanConfig } from "@/lib/notifikasi-config";
-import { getRiwayat, MILESTONE } from "@/lib/notifikasi";
+import { getRiwayat, jalankanNotifikasi, MILESTONE } from "@/lib/notifikasi";
 import { emailSiap } from "@/lib/email";
 
 export const metadata = { title: "Notifikasi email" };
@@ -13,7 +13,8 @@ async function simpan(formData: FormData) {
   if (!(await verifyToken(cookies().get(COOKIE)?.value))) return;
   const lama = await getConfig();
   await simpanConfig({ admin: parseEmails(String(formData.get("admin") ?? "")), mentor: lama.mentor });
-  redirect(`/admin/notifikasi?hasil=${encodeURIComponent("Pengaturan disimpan.")}`);
+  const hasil = await jalankanNotifikasi();
+  redirect(`/admin/notifikasi?hasil=${encodeURIComponent(`Pengaturan disimpan. ${hasil.pesan}`)}`);
 }
 
 export default async function Notifikasi({ searchParams }: { searchParams: { hasil?: string } }) {
@@ -23,7 +24,7 @@ export default async function Notifikasi({ searchParams }: { searchParams: { has
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-3xl font-extrabold">Notifikasi email</h1>
       <p className="mt-1 text-sm text-muted">
-        Email dikirim otomatis setiap hari pukul 07.00 WIB bila ada peserta yang tinggal {MILESTONE.join(", ")} hari
+        Email dikirim otomatis pada jam kerja (07.00-17.00 WIB) bila ada peserta yang tinggal {MILESTONE.join(", ")} hari
         lagi berakhir, atau ada slot kuota yang terbuka. Isi lebih dari satu email dengan pemisah koma.
       </p>
 

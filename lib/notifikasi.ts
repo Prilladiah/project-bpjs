@@ -7,6 +7,10 @@ import { redis } from "./store";
 
 export const MILESTONE = [21, 14, 7, 3];
 
+// Email hanya dikirim pada jam kerja (WIB)
+const JAM_MULAI = 7;
+const JAM_SELESAI = 17;
+
 type Ev =
   | { t: "keluar"; nama: string; selesai: string; sisa: number }
   | { t: "kuota"; buka: number; sisa: number; max: number };
@@ -16,6 +20,19 @@ type Log = { terkirim: Record<string, string>; kuota: Record<string, number>; ri
 
 const LOG_KEY = "notifikasi-log";
 const BELUM_SIAP = "Email belum diatur: isi APPS_SCRIPT_URL dan APPS_SCRIPT_SECRET di Environment Variables.";
+
+function jamWIB() {
+  return (
+    Number(
+      new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", hour12: false }).format(new Date())
+    ) % 24
+  );
+}
+
+export function jamKerja() {
+  const j = jamWIB();
+  return j >= JAM_MULAI && j < JAM_SELESAI;
+}
 
 async function bacaLog(): Promise<Log> {
   const l = await redis.get<Partial<Log>>(LOG_KEY);
@@ -72,6 +89,9 @@ function susunEmail(groups: [string, Ev[]][]) {
 
 export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string }> {
   if (!emailSiap()) return { ok: false, pesan: BELUM_SIAP };
+  if (!jamKerja()) {
+    return { ok: true, pesan: "Di luar jam kerja (07.00-17.00 WIB), email dikirim pada jam kerja berikutnya." };
+  }
 
   const [peserta, kuota, cfg, log] = await Promise.all([listPeserta(), hitungKuota(), getConfig(), bacaLog()]);
   const today = hariIni();
@@ -115,7 +135,7 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     const to = (cfg.mentor[id] ?? []).filter((e) => !cfg.admin.includes(e));
     if (to.length) surat.push({ to, groups: [[getKantor(id)!.nama, grup[id]]] });
   }
-  if (!surat.length) return { ok: false, pesan: "Belum ada email admin atau mentor yang diisi." };
+  if (!surat.length) return { ok: false, pesan: "Belum ada email admin yang diisi." };
 
   let berhasil = 0;
   for (const s of surat) {
