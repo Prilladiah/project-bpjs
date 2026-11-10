@@ -1,6 +1,6 @@
 import { getKantor, HARI_SLOT_KEMBALI } from "./kantor";
 import { hitungKuota, listPeserta } from "./kuota";
-import { listPendaftar } from "./pendaftar";
+import { hapusKadaluarsa, listPendaftar, statusOf } from "./pendaftar";
 import { getConfig } from "./notifikasi-config";
 import { emailSiap, kirimEmail } from "./email";
 import { hariIni, selisihHari } from "./tanggal";
@@ -8,14 +8,14 @@ import { redis } from "./store";
 
 export const MILESTONE = [21, 14, 7, 3];
 
-// Email hanya dikirim pada jam kerja (WIB)
 const JAM_MULAI = 7;
 const JAM_SELESAI = 17;
-// Pendaftar baru diberi notifikasi maksimal sampai sekian hari setelah mendaftar
-const BATAS_HARI_BARU = 7;
+const BATAS_HARI_BARU = 7; // pendaftar baru lebih tua dari ini tidak diemail
+const HARI_MULAI = 7; // pengingat H-7 sebelum tanggal mulai
 
 type Ev =
   | { t: "baru"; nama: string; mulai?: string; selesai?: string }
+  | { t: "mulai"; nama: string; mulai: string; sisa: number }
   | { t: "keluar"; nama: string; selesai: string; sisa: number }
   | { t: "kuota"; buka: number; sisa: number; max: number };
 
@@ -38,7 +38,6 @@ export function jamKerja() {
   return j >= JAM_MULAI && j < JAM_SELESAI;
 }
 
-// Tanggal (yyyy-mm-dd, zona WIB) dari waktu ISO
 const tanggalWIB = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(iso));
 
 async function bacaLog(): Promise<Log> {
@@ -47,11 +46,20 @@ async function bacaLog(): Promise<Log> {
 }
 
 async function tulisLog(l: Log) {
-  await redis.set(LOG_KEY, { ...l, riwayat: l.riwayat.slice(0, 30) });
+  await redis.set(LOG_KEY, { ...l, riwayat: l.riwayat.slice(0, 100) });
 }
 
+const lewatRetensi = (waktu: string, hari: number) => Date.now() - new Date(waktu).getTime() > hari * 86_400_000;
+
+// Riwayat yang ditampilkan: otomatis menyembunyikan yang lebih tua dari batas hari
 export async function getRiwayat() {
-  return (await bacaLog()).riwayat;
+  const [log, cfg] = await Promise.all([bacaLog(), getConfig()]);
+  return log.riwayat.filter((r) => !lewatRetensi(r.waktu, cfg.hapusHari));
+}
+
+// Untuk kolom "Diberitahu (Y/N)" di tabel pendaftar
+export async function getTerkirim() {
+  return (await bacaLog()).terkirim;
 }
 
 const tgl = (iso: string) =>
@@ -65,6 +73,10 @@ function baris(e: Ev) {
     const periode = e.mulai && e.selesai ? ` untuk periode ${tgl(e.mulai)} - ${tgl(e.selesai)}` : "";
     return `${e.nama} baru mendaftar magang${periode}`;
   }
+  if (e.t === "mulai") {
+    const kapan = e.sisa <= 0 ? "hari ini" : `${e.sisa} hari lagi`;
+    return `${e.nama} akan mulai magang ${tgl(e.mulai)} (${kapan}) — belum diputuskan, mohon diterima atau ditolak`;
+  }
   if (e.t === "keluar") {
     const kapan = e.sisa <= 0 ? "hari ini" : `${e.sisa} hari lagi`;
     const slot = e.sisa <= HARI_SLOT_KEMBALI ? " — slot kuota sudah dihitung kosong" : "";
@@ -75,13 +87,12 @@ function baris(e: Ev) {
 
 function susunEmail(groups: [string, Ev[]][]) {
   const semua = groups.flatMap(([, ev]) => ev);
-  const nBaru = semua.filter((e) => e.t === "baru").length;
-  const nKeluar = semua.filter((e) => e.t === "keluar").length;
-  const nKuota = semua.filter((e) => e.t === "kuota").length;
+  const n = (t: Ev["t"]) => semua.filter((e) => e.t === t).length;
   const bagian = [
-    nBaru ? `${nBaru} pendaftar baru` : "",
-    nKeluar ? `${nKeluar} peserta akan berakhir` : "",
-    nKuota ? `kuota terbuka di ${nKuota} kantor` : "",
+    n("baru") ? `${n("baru")} pendaftar baru` : "",
+    n("mulai") ? `${n("mulai")} pendaftar H-7 mulai` : "",
+    n("keluar") ? `${n("keluar")} peserta akan berakhir` : "",
+    n("kuota") ? `kuota terbuka di ${n("kuota")} kantor` : "",
   ].filter(Boolean);
   const subject = `[Magang BPJS] ${bagian.join(", ")}`;
 
@@ -101,6 +112,9 @@ function susunEmail(groups: [string, Ev[]][]) {
 }
 
 export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string }> {
+  // Pembersihan data tidak bergantung pada email atau jam kerja
+  await hapusKadaluarsa().catch((e) => console.error("[hapusKadaluarsa]", e));
+
   if (!emailSiap()) return { ok: false, pesan: BELUM_SIAP };
   if (!jamKerja()) {
     return { ok: true, pesan: "Di luar jam kerja (07.00-17.00 WIB), email dikirim pada jam kerja berikutnya." };
@@ -114,6 +128,12 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     bacaLog(),
   ]);
   const today = hariIni();
+
+  // Bersihkan: riwayat lama dan tanda-kirim milik pendaftar yang sudah dihapus
+  log.riwayat = log.riwayat.filter((r) => !lewatRetensi(r.waktu, cfg.hapusHari));
+  const idAda = new Set(semuaPendaftar.map((p) => p.id));
+  for (const k of Object.keys(log.terkirim)) if (!idAda.has(k.split(":")[1])) delete log.terkirim[k];
+
   const grup: Record<string, Ev[]> = {};
   const tandai: string[] = [];
   const tambah = (id: string, e: Ev) => {
@@ -121,17 +141,29 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     grup[id].push(e);
   };
 
-  // 1) Pendaftar baru: dikirim mulai hari setelah mendaftar, berapa pun sisa harinya
   for (const p of semuaPendaftar) {
     if (!p.kantor || !getKantor(p.kantor)) continue;
-    if (log.terkirim[`baru:${p.id}`]) continue;
-    const umur = selisihHari(tanggalWIB(p.waktu), today);
-    if (umur < 1 || umur > BATAS_HARI_BARU) continue;
-    tambah(p.kantor, { t: "baru", nama: p.nama, mulai: p.tanggalMulai, selesai: p.tanggalSelesai });
-    tandai.push(`baru:${p.id}`);
+
+    // 1) Pendaftar baru: langsung diberitahukan ke admin
+    if (!log.terkirim[`baru:${p.id}`]) {
+      const umur = selisihHari(tanggalWIB(p.waktu), today);
+      if (umur >= 0 && umur <= BATAS_HARI_BARU) {
+        tambah(p.kantor, { t: "baru", nama: p.nama, mulai: p.tanggalMulai, selesai: p.tanggalSelesai });
+        tandai.push(`baru:${p.id}`);
+      }
+    }
+
+    // 2) H-7 sebelum mulai dan masih menunggu keputusan
+    if (statusOf(p) === "menunggu" && p.tanggalMulai && !log.terkirim[`mulai:${p.id}`]) {
+      const sisa = selisihHari(today, p.tanggalMulai);
+      if (sisa >= 0 && sisa <= HARI_MULAI) {
+        tambah(p.kantor, { t: "mulai", nama: p.nama, mulai: p.tanggalMulai, sisa });
+        tandai.push(`mulai:${p.id}`);
+      }
+    }
   }
 
-  // 2) Peserta yang akan keluar (H-21, H-14, H-7, H-3)
+  // 3) Peserta (diterima) yang akan keluar
   for (const p of peserta) {
     if (!p.kantor || !getKantor(p.kantor)) continue;
     const sisa = selisihHari(today, p.tanggalSelesai);
@@ -141,7 +173,7 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     belum.forEach((m) => tandai.push(`keluar:${p.id}:${m}`));
   }
 
-  // 3) Slot kuota yang terbuka
+  // 4) Slot kuota yang terbuka
   const sisaBaru: Record<string, number> = {};
   for (const k of kuota) {
     sisaBaru[k.kantor.id] = k.sisa;
@@ -151,45 +183,35 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     }
   }
 
-  const ids = Object.keys(grup);
-  if (!ids.length) {
+  const idKantor = Object.keys(grup);
+  if (!idKantor.length) {
     log.kuota = sisaBaru;
     await tulisLog(log);
     return { ok: true, pesan: "Tidak ada notifikasi baru." };
   }
 
-  const surat: { to: string[]; groups: [string, Ev[]][] }[] = [];
-  if (cfg.admin.length) {
-    surat.push({ to: cfg.admin, groups: ids.map((id) => [getKantor(id)!.nama, grup[id]] as [string, Ev[]]) });
+  if (!cfg.admin.length) return { ok: false, pesan: "Belum ada email admin yang diisi." };
+  const groups = idKantor.map((id) => [getKantor(id)!.nama, grup[id]] as [string, Ev[]]);
+  const { subject, text, html } = susunEmail(groups);
+  const r: Riwayat = { waktu: new Date().toISOString(), subjek: subject, ke: cfg.admin, ok: true };
+  let berhasil = false;
+  try {
+    await kirimEmail(cfg.admin, subject, text, html);
+    berhasil = true;
+  } catch (e) {
+    r.ok = false;
+    r.error = e instanceof Error ? e.message : "Gagal mengirim";
+    console.error("[notifikasi]", e);
   }
-  for (const id of ids) {
-    const to = (cfg.mentor[id] ?? []).filter((e) => !cfg.admin.includes(e));
-    if (to.length) surat.push({ to, groups: [[getKantor(id)!.nama, grup[id]]] });
-  }
-  if (!surat.length) return { ok: false, pesan: "Belum ada email admin yang diisi." };
+  log.riwayat.unshift(r);
 
-  let berhasil = 0;
-  for (const s of surat) {
-    const { subject, text, html } = susunEmail(s.groups);
-    const r: Riwayat = { waktu: new Date().toISOString(), subjek: subject, ke: s.to, ok: true };
-    try {
-      await kirimEmail(s.to, subject, text, html);
-      berhasil++;
-    } catch (e) {
-      r.ok = false;
-      r.error = e instanceof Error ? e.message : "Gagal mengirim";
-      console.error("[notifikasi]", e);
-    }
-    log.riwayat.unshift(r);
-  }
-
-  if (berhasil > 0) {
+  if (berhasil) {
     const waktu = new Date().toISOString();
     tandai.forEach((k) => (log.terkirim[k] = waktu));
     log.kuota = sisaBaru;
   }
   await tulisLog(log);
-  return berhasil > 0
-    ? { ok: true, pesan: `${berhasil} email terkirim.` }
+  return berhasil
+    ? { ok: true, pesan: "1 email terkirim." }
     : { ok: false, pesan: "Email gagal dikirim. Lihat riwayat di bawah untuk penyebabnya." };
 }

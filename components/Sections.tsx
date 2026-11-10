@@ -1,55 +1,57 @@
 import Link from "next/link";
 import type { Content } from "@/types/content";
 
-export function Title({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="mb-7 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
-      {children}
-    </h2>
-  );
+const wrap = "mx-auto max-w-6xl px-5";
+const URL_RE = /(https?:\/\/[^\s]+)/g;
+
+// Kata kunci pada nama kantor -> link Google Maps
+const MAPS: [string, string][] = [
+  ["sleman", "https://maps.app.goo.gl/FfyFGecHMcitdQvK9"],
+  ["bantul", "https://maps.app.goo.gl/zQrBvsEwfQe8ekYbA"],
+  ["gunung", "https://maps.app.goo.gl/hEdeM498Yone6FZ27"], // Gunungkidul / Gunung Kidul
+  ["kulon", "https://maps.app.goo.gl/wJu76X756gYhjWYp6"], // Kulon Progo / Kulonprogo
+  ["yogya", "https://maps.app.goo.gl/EHPFGxgJc2B7CNsh6"], // Cabang Induk Yogyakarta
+];
+
+// Pengali skala ikon program supaya semua ikon terlihat sama besar.
+// Ikon yang punya ruang kosong lebih banyak di dalam filenya diberi skala > 1.
+// Ubah angkanya kalau masih terlalu kecil / terlalu besar.
+const SKALA_IKON: Record<string, number> = {
+  JKK: 1.25,
+  JHT: 1.6,
+};
+
+function linkMaps(nama: string, alamat: string) {
+  const n = nama.toLowerCase();
+  const hit = MAPS.find(([kunci]) => n.includes(kunci));
+  return hit
+    ? hit[1]
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${nama} ${alamat}`)}`;
 }
 
-const Linkify = ({ text }: { text: string }) => (
-  <>
-    {text.split(/(https?:\/\/\S+)/g).map((p, i) =>
-      /^https?:\/\//.test(p) ? (
-        <a
-          key={i}
-          href={p}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="break-all text-sea underline"
-        >
-          {p}
-        </a>
-      ) : (
-        p
-      )
-    )}
-  </>
-);
-
-const mapsUrl = (q: string) =>
-  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
-
-const wa = (n: string) =>
-  `https://wa.me/62${n.replace(/^0/, "").replace(/\D/g, "")}`;
+function Teks({ t }: { t: string }) {
+  return (
+    <>
+      {t.split(URL_RE).map((s, i) =>
+        /^https?:\/\//.test(s) ? (
+          <a key={i} href={s} target="_blank" rel="noopener noreferrer" className="break-all font-semibold text-sea hover:underline">
+            {s}
+          </a>
+        ) : (
+          <span key={i}>{s}</span>
+        )
+      )}
+    </>
+  );
+}
 
 export function Hero({ c }: { c: Content }) {
   return (
     <section className="bg-gradient-to-b from-[#9BD38A] via-[#8DBBD8] to-[#C4F4D8]">
-      <div className="mx-auto max-w-6xl px-5 pb-24 pt-20 md:pb-32 md:pt-28">
-        <h1 className="max-w-4xl text-4xl font-extrabold leading-[1.08] tracking-tight md:text-6xl">
-          {c.hero.judul}
-        </h1>
-
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink/75">
-          {c.hero.subjudul}
-        </p>
-
-        <a href="#magang" className="btn btn-primary mt-9">
-          Daftar magang
-        </a>
+      <div className={`${wrap} py-20 sm:py-28`}>
+        <h1 className="max-w-4xl text-4xl font-extrabold leading-tight text-ink sm:text-6xl">{c.hero.judul}</h1>
+        <p className="mt-6 max-w-2xl text-lg text-ink/70">{c.hero.subjudul}</p>
+        <Link href="/daftar" className="btn btn-primary mt-8">Daftar magang</Link>
       </div>
     </section>
   );
@@ -57,61 +59,56 @@ export function Hero({ c }: { c: Content }) {
 
 export function Program({ c }: { c: Content }) {
   return (
-    <section id="program" className="mx-auto max-w-6xl px-5 pt-16">
-      <Title>Program</Title>
-
-      <ul className="-mt-10 grid gap-5 pt-10 sm:grid-cols-2 lg:grid-cols-5">
-        {c.program.map((p) => (
-          <li key={p.kode} className="card p-6">
-            {p.gambar ? (
-              <img
-                src={p.gambar}
-                alt={p.kode}
-                className="h-16 w-16 rounded-2xl object-cover"
-              />
-            ) : (
-              <span
-                className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-leaf to-sea text-2xl font-bold text-white shadow-lg"
-                aria-hidden
-              >
-                J
-              </span>
-            )}
-
-            <h3 className="mt-5 text-lg font-bold">{p.kode}</h3>
-
-            <p className="mt-1 text-sm leading-relaxed text-muted">
-              {p.desc}
-            </p>
-          </li>
+    <section id="program" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Program</h2>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {c.program.map((p, i) => (
+          <div key={i} className="card p-6">
+            <div className="flex h-16 w-16 items-center justify-center overflow-visible">
+              {p.gambar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.gambar}
+                  alt={p.kode}
+                  className="h-16 w-16 object-contain"
+                  style={{ transform: `scale(${SKALA_IKON[p.kode] ?? 1})` }}
+                />
+              ) : (
+                <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-paper text-2xl font-bold text-sea">
+                  {p.kode.charAt(0)}
+                </span>
+              )}
+            </div>
+            <h3 className="mt-4 text-lg font-bold">{p.kode}</h3>
+            <p className="mt-1 text-sm text-muted">{p.desc}</p>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }
 
 export function VisiMisi({ c }: { c: Content }) {
   return (
-    <section id="visi-misi" className="mx-auto max-w-6xl px-5 pt-24">
-      <Title>Visi & Misi</Title>
-
-      <div className="grid gap-5 md:grid-cols-2">
-        <div className="card p-7">
+    <section id="visi" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Visi &amp; Misi</h2>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="card p-6">
           <h3 className="text-lg font-bold">Visi</h3>
-
-          <p className="mt-3 leading-relaxed text-muted">
-            {c.visi}
-          </p>
+          <p className="mt-2 leading-relaxed text-muted">{c.visi}</p>
         </div>
-
-        <div className="card p-7">
+        <div className="card p-6">
           <h3 className="text-lg font-bold">Misi</h3>
-
-          <ul className="mt-3 list-disc space-y-1.5 pl-5 leading-relaxed text-muted marker:text-sea">
-            {c.misi.map((m) => (
-              <li key={m}>{m}</li>
+          <ol className="mt-2 space-y-2 text-muted">
+            {c.misi.map((m, i) => (
+              <li key={i} className="flex gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-paper text-xs font-bold text-sea">
+                  {i + 1}
+                </span>
+                <span className="leading-relaxed">{m}</span>
+              </li>
             ))}
-          </ul>
+          </ol>
         </div>
       </div>
     </section>
@@ -120,46 +117,37 @@ export function VisiMisi({ c }: { c: Content }) {
 
 export function Informasi({ c }: { c: Content }) {
   return (
-    <section id="informasi" className="mx-auto max-w-6xl px-5 pt-24">
-      <Title>Informasi</Title>
-
-      <ul className="card space-y-3 p-4 md:p-6">
+    <section id="informasi" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Informasi</h2>
+      <div className="card mt-6 divide-y divide-edge">
         {c.informasi.map((t, i) => (
-          <li
-            key={i}
-            className="whitespace-pre-line rounded-2xl border border-edge bg-white px-5 py-4 text-[15px] leading-relaxed"
-          >
-            <Linkify text={t} />
-          </li>
+          <div key={i} className="flex gap-4 px-5 py-4 sm:px-7">
+            <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-paper text-xs font-bold text-sea">
+              {i + 1}
+            </span>
+            <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink">
+              <Teks t={t} />
+            </p>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }
 
 export function Kontak({ c }: { c: Content }) {
   return (
-    <section id="kontak" className="mx-auto max-w-6xl px-5 pt-24">
-      <Title>Kontak</Title>
-
-      <div className="card max-w-xl p-6">
-        <h3 className="mb-3 font-bold">Hubungi</h3>
-
-        <ul className="space-y-2.5">
-          {c.kontak.map((k) => (
-            <li key={k.nama}>
-              <a
-                href={wa(k.telp)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between rounded-2xl border border-edge px-5 py-4 font-semibold transition hover:border-leaf"
-              >
-                <span>{k.nama}</span>
-                <span className="text-sea">{k.telp}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
+    <section id="kontak" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Kontak</h2>
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {c.kontak.map((k, i) => (
+          <div key={i} className="card p-5">
+            <p className="font-semibold">{k.nama}</p>
+            <a href={`tel:${k.telp.replace(/\s+/g, "")}`} className="mt-1 block text-sea hover:underline">
+              {k.telp}
+            </a>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -167,45 +155,33 @@ export function Kontak({ c }: { c: Content }) {
 
 export function Alamat({ c }: { c: Content }) {
   return (
-    <section id="alamat" className="mx-auto max-w-6xl px-5 pt-24">
-      <Title>Alamat</Title>
-
-      <ul className="grid gap-5 md:grid-cols-2">
-        {c.alamat.map((a) => (
-          <li key={a.nama} className="card p-6">
-            <h3 className="font-bold">{a.nama}</h3>
-
-            <p className="mt-2 text-sm leading-relaxed text-muted">
-              {a.alamat}
-            </p>
-
-            <a
-              href={mapsUrl(`BPJS Ketenagakerjaan ${a.nama} ${a.alamat}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-block text-sm font-semibold text-sea hover:underline"
-            >
-              Buka di Google Maps
-            </a>
-          </li>
+    <section id="alamat" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Alamat</h2>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        {c.alamat.map((a, i) => (
+          <a
+            key={i}
+            href={linkMaps(a.nama, a.alamat)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card block p-5 transition hover:shadow-md"
+          >
+            <p className="font-semibold">{a.nama}</p>
+            <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted">{a.alamat}</p>
+            <span className="mt-3 inline-block text-sm font-semibold text-sea">Buka di Google Maps</span>
+          </a>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }
 
-export function Magang({ c }: { c: Content }) {
+export function Magang({ c: _c }: { c: Content }) {
   return (
-    <section id="magang" className="mx-auto max-w-6xl px-5 pt-24">
-      <Title>Magang</Title>
-
-      <div className="card p-7">
-        <Link
-          href="/daftar"
-          className="text-lg font-semibold text-sea hover:underline"
-        >
-          Klik untuk Mendaftar
-        </Link>
+    <section id="magang" className={`${wrap} pt-16`}>
+      <h2 className="text-3xl font-extrabold">Magang</h2>
+      <div className="card mt-6 p-6">
+        <Link href="/daftar" className="font-semibold text-sea hover:underline">Klik untuk Mendaftar</Link>
       </div>
     </section>
   );

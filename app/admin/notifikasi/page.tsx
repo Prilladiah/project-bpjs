@@ -12,7 +12,12 @@ async function simpan(formData: FormData) {
   "use server";
   if (!(await verifyToken(cookies().get(COOKIE)?.value))) return;
   const lama = await getConfig();
-  await simpanConfig({ admin: parseEmails(String(formData.get("admin") ?? "")), mentor: lama.mentor });
+  const h = Math.floor(Number(formData.get("hapusHari")));
+  await simpanConfig({
+    admin: parseEmails(String(formData.get("admin") ?? "")),
+    mentor: lama.mentor,
+    hapusHari: Number.isFinite(h) ? Math.min(365, Math.max(1, h)) : lama.hapusHari,
+  });
   const hasil = await jalankanNotifikasi();
   redirect(`/admin/notifikasi?hasil=${encodeURIComponent(`Pengaturan disimpan. ${hasil.pesan}`)}`);
 }
@@ -24,8 +29,9 @@ export default async function Notifikasi({ searchParams }: { searchParams: { has
     <div className="mx-auto max-w-3xl px-5 py-10">
       <h1 className="text-3xl font-extrabold">Notifikasi email</h1>
       <p className="mt-1 text-sm text-muted">
-        Email dikirim otomatis pada jam kerja (07.00-17.00 WIB) bila ada peserta yang tinggal {MILESTONE.join(", ")} hari
-        lagi berakhir, atau ada slot kuota yang terbuka. Isi lebih dari satu email dengan pemisah koma.
+        Email dikirim otomatis pada jam kerja (07.00-17.00 WIB) untuk: pendaftar baru, pendaftar yang tinggal 7 hari
+        lagi mulai dan belum diputuskan, peserta yang tinggal {MILESTONE.join(", ")} hari lagi berakhir, dan slot
+        kuota yang terbuka. Isi lebih dari satu email dengan pemisah koma.
       </p>
 
       {!emailSiap() && (
@@ -44,7 +50,11 @@ export default async function Notifikasi({ searchParams }: { searchParams: { has
           Email admin (menerima semua kantor)
           <input name="admin" defaultValue={cfg.admin.join(", ")} placeholder="admin@contoh.com" className="field mt-1.5 font-normal" />
         </label>
-        <button className="btn btn-primary w-full sm:w-auto">Simpan penerima</button>
+        <label className="block text-sm font-semibold">
+          Hapus riwayat notifikasi setelah (hari)
+          <input name="hapusHari" type="number" min={1} max={365} required defaultValue={cfg.hapusHari} className="field mt-1.5 w-32 font-normal" />
+        </label>
+        <button className="btn btn-primary w-full sm:w-auto">Simpan pengaturan</button>
       </form>
 
       <h2 className="mb-3 mt-10 text-lg font-bold">Riwayat pengiriman</h2>

@@ -24,19 +24,22 @@ export default async function Magang({ searchParams }: { searchParams: { kantor?
           <h1 className="text-3xl font-extrabold">Peserta magang saat ini</h1>
           <p className="mt-1 text-sm text-muted">{data.length} dari {semua.length} peserta</p>
         </div>
-        <form className="flex gap-2">
-          <select name="kantor" defaultValue={filter} className="field w-64">
-            <option value="">Semua kantor</option>
-            {(["cabang", "kcp"] as const).map((j) => (
-              <optgroup key={j} label={j === "cabang" ? "Kantor Cabang" : "KCP"}>
-                {KANTOR.filter((k) => k.jenis === j).map((k) => (
-                  <option key={k.id} value={k.id}>{k.nama}</option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          <button className="btn btn-primary">Terapkan</button>
-        </form>
+        <div className="flex flex-wrap gap-2">
+          <a href="/api/export?jenis=magang" className="btn border border-edge bg-white">Export Excel</a>
+          <form className="flex gap-2">
+            <select name="kantor" defaultValue={filter} className="field w-64">
+              <option value="">Semua kantor</option>
+              {(["cabang", "kcp"] as const).map((j) => (
+                <optgroup key={j} label={j === "cabang" ? "Kantor Cabang" : "KCP"}>
+                  {KANTOR.filter((k) => k.jenis === j).map((k) => (
+                    <option key={k.id} value={k.id}>{k.nama}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <button className="btn btn-primary">Terapkan</button>
+          </form>
+        </div>
       </div>
 
       {segera.length > 0 && (
