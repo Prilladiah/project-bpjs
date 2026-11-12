@@ -1,4 +1,4 @@
-export const MIN_BULAN = 3;
+export const MIN_BULAN = 2;
 export const MAX_BULAN = 24;
 
 const DAY = 86_400_000;

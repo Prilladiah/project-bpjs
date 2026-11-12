@@ -9,7 +9,7 @@ const petunjuk: [string, React.ReactNode][] = [
   ["✅", "Isi semua kolom dengan lengkap dan benar."],
   ["🏢", <>Pilih <b>kantor tujuan magang</b>. Kantor yang kuotanya penuh tidak bisa dipilih.</>],
   ["📄", <>Upload <b>CV</b>, <b>Surat Permohonan</b> & <b>Proposal</b> dalam format <b>PDF</b> maksimal 1,4MB per file.</>],
-  ["📅", <>Pilih <b>tanggal mulai</b> dan <b>tanggal selesai</b> magang. Durasi minimal <b>3 bulan</b>.</>],
+  ["📅", <>Pilih <b>tanggal mulai</b> dan <b>tanggal selesai</b> magang. Durasi minimal <b>2 bulan</b>.</>],
   ["📧", "Gunakan email aktif untuk konfirmasi."],
 ];
 
