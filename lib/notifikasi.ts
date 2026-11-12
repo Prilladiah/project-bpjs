@@ -7,6 +7,8 @@ import { hariIni, selisihHari } from "./tanggal";
 import { redis } from "./store";
 
 export const MILESTONE = [21, 14, 7, 3];
+// Titik pengiriman "peserta akan berakhir": milestone + hari terakhir (0 = berakhir hari ini)
+const TITIK_KELUAR = [...MILESTONE, 0];
 
 const JAM_MULAI = 7;
 const JAM_SELESAI = 17;
@@ -57,7 +59,6 @@ export async function getRiwayat() {
   return log.riwayat.filter((r) => !lewatRetensi(r.waktu, cfg.hapusHari));
 }
 
-// Untuk kolom "Diberitahu (Y/N)" di tabel pendaftar
 export async function getTerkirim() {
   return (await bacaLog()).terkirim;
 }
@@ -163,11 +164,11 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     }
   }
 
-  // 3) Peserta (diterima) yang akan keluar
+  // 3) Peserta (diterima) yang akan keluar: H-21, H-14, H-7, H-3, dan hari terakhir (0)
   for (const p of peserta) {
     if (!p.kantor || !getKantor(p.kantor)) continue;
     const sisa = selisihHari(today, p.tanggalSelesai);
-    const belum = MILESTONE.filter((m) => sisa <= m && !log.terkirim[`keluar:${p.id}:${m}`]);
+    const belum = TITIK_KELUAR.filter((m) => sisa <= m && !log.terkirim[`keluar:${p.id}:${m}`]);
     if (!belum.length) continue;
     tambah(p.kantor, { t: "keluar", nama: p.nama, selesai: p.tanggalSelesai, sisa });
     belum.forEach((m) => tandai.push(`keluar:${p.id}:${m}`));
