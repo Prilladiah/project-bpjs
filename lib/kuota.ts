@@ -48,12 +48,13 @@ export async function ringkasan() {
   const today = hariIni();
   const semua = await listPendaftar();
   const diterima = semua.filter((p) => statusOf(p) === "diterima");
+  const menunggu = semua.filter((p) => statusOf(p) === "menunggu");
   const aktif = diterima.filter(
     (p): p is Peserta => berjadwal(p) && p.tanggalMulai <= today && p.tanggalSelesai >= today
   );
   const akanKeluar = aktif.filter((p) => selisihHari(today, p.tanggalSelesai) <= HARI_PERINGATAN);
   return {
-    mendaftar: semua.length,
+    mendaftar: menunggu.length, // hanya yang belum diterima/ditolak
     diterima: diterima.length,
     magang: aktif.length,
     akanKeluar: akanKeluar.length,
