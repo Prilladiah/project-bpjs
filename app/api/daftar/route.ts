@@ -8,7 +8,7 @@ import { MAX_BULAN, MIN_BULAN, parseIso, selisihBulan, tambahBulan } from "@/lib
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const MAX = 1.4 * 1024 * 1024; // 3 file x 1,4 MB masih di bawah batas 4,5 MB Vercel
+const MAX = 1.4 * 1024 * 1024;
 const err = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
 const isFile = (v: unknown): v is Blob =>
@@ -57,8 +57,7 @@ export async function POST(req: Request) {
       { cv: cv as Blob, surat: surat as Blob, proposal: proposal as Blob }
     );
 
-    // Cek notifikasi segera (terkirim hanya di jam kerja 07.00-17.00 WIB).
-    // Kegagalan email tidak membatalkan pendaftaran.
+    // Otomatis: kirim notifikasi pendaftar baru (hanya jam kerja). Gagal kirim tidak membatalkan pendaftaran.
     try {
       await jalankanNotifikasi();
     } catch (e) {
