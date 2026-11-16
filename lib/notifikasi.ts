@@ -1,4 +1,4 @@
-import { getKantor, HARI_SLOT_KEMBALI } from "./kantor";
+import { getKantor, HARI_SLOT_KEMBALI, HARI_PERINGATAN } from "./kantor";
 import { hitungKuota, listPeserta } from "./kuota";
 import { hapusKadaluarsa, listPendaftar, statusOf } from "./pendaftar";
 import { getConfig } from "./notifikasi-config";
@@ -7,8 +7,6 @@ import { hariIni, selisihHari } from "./tanggal";
 import { redis } from "./store";
 
 export const MILESTONE = [21, 14, 7, 3];
-// Titik pengiriman "peserta akan berakhir": milestone + hari terakhir (0 = berakhir hari ini)
-const TITIK_KELUAR = [...MILESTONE, 0];
 
 const JAM_MULAI = 7;
 const JAM_SELESAI = 17;
@@ -135,6 +133,14 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
   const idAda = new Set(semuaPendaftar.map((p) => p.id));
   for (const k of Object.keys(log.terkirim)) if (!idAda.has(k.split(":")[1])) delete log.terkirim[k];
 
+  // Hapus tanda pengingat harian milik hari-hari sebelumnya
+  for (const k of Object.keys(log.terkirim)) {
+    const bagian = k.split(":");
+    if (bagian[0] === "keluar" && /^\d{4}-\d{2}-\d{2}$/.test(bagian[2] ?? "") && bagian[2] < today) {
+      delete log.terkirim[k];
+    }
+  }
+
   const grup: Record<string, Ev[]> = {};
   const tandai: string[] = [];
   const tambah = (id: string, e: Ev) => {
@@ -164,14 +170,15 @@ export async function jalankanNotifikasi(): Promise<{ ok: boolean; pesan: string
     }
   }
 
-  // 3) Peserta (diterima) yang akan keluar: H-21, H-14, H-7, H-3, dan hari terakhir (0)
+  // 3) Peserta (diterima) yang akan keluar: pengingat harian sejak H-21 sampai hari terakhir
   for (const p of peserta) {
     if (!p.kantor || !getKantor(p.kantor)) continue;
     const sisa = selisihHari(today, p.tanggalSelesai);
-    const belum = TITIK_KELUAR.filter((m) => sisa <= m && !log.terkirim[`keluar:${p.id}:${m}`]);
-    if (!belum.length) continue;
+    if (sisa > HARI_PERINGATAN) continue;
+    const kunci = `keluar:${p.id}:${today}`;
+    if (log.terkirim[kunci]) continue;
     tambah(p.kantor, { t: "keluar", nama: p.nama, selesai: p.tanggalSelesai, sisa });
-    belum.forEach((m) => tandai.push(`keluar:${p.id}:${m}`));
+    tandai.push(kunci);
   }
 
   // 4) Slot kuota yang terbuka
