@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { listPendaftar, hapusPendaftar, ubahStatus, statusOf, type Status } from "@/lib/pendaftar";
+import { jalankanNotifikasi } from "@/lib/notifikasi";
 import { getKantor } from "@/lib/kantor";
 import { COOKIE, verifyToken } from "@/lib/auth";
 import HapusButton from "@/components/hapusbutton";
@@ -27,6 +28,14 @@ async function ubah(formData: FormData) {
   const status = String(formData.get("status"));
   if (status !== "diterima" && status !== "ditolak" && status !== "menunggu") return;
   await ubahStatus(String(formData.get("id")), status as Status);
+  // Setelah diterima, langsung cek notifikasi (email hanya terkirim di jam kerja)
+  if (status === "diterima") {
+    try {
+      await jalankanNotifikasi();
+    } catch (e) {
+      console.error("[ubah] notifikasi", e);
+    }
+  }
   segarkan();
 }
 
