@@ -43,20 +43,39 @@ export async function hitungKuota() {
   });
 }
 
-// Angka untuk dashboard di bagian atas halaman admin
+// Dashboard: tiap orang hanya masuk satu kartu sesuai tahapnya
 export async function ringkasan() {
   const today = hariIni();
   const semua = await listPendaftar();
-  const diterima = semua.filter((p) => statusOf(p) === "diterima");
-  const menunggu = semua.filter((p) => statusOf(p) === "menunggu");
-  const aktif = diterima.filter(
-    (p): p is Peserta => berjadwal(p) && p.tanggalMulai <= today && p.tanggalSelesai >= today
-  );
-  const akanKeluar = aktif.filter((p) => selisihHari(today, p.tanggalSelesai) <= HARI_PERINGATAN);
-  return {
-    mendaftar: menunggu.length, // hanya yang belum diterima/ditolak
-    diterima: diterima.length,
-    magang: aktif.length,
-    akanKeluar: akanKeluar.length,
-  };
+
+  let mendaftar = 0;
+  let diterima = 0;
+  let magang = 0;
+  let akanKeluar = 0;
+
+  for (const p of semua) {
+    const st = statusOf(p);
+    if (st === "menunggu") {
+      mendaftar++;
+      continue;
+    }
+    if (st !== "diterima") continue; // ditolak tidak dihitung
+
+    // Diterima tanpa jadwal (data lama): tetap dianggap "diterima"
+    if (!berjadwal(p)) {
+      diterima++;
+      continue;
+    }
+    if (p.tanggalSelesai < today) continue; // sudah selesai
+
+    if (p.tanggalMulai > today) {
+      diterima++; // sudah diterima, belum mulai
+    } else if (selisihHari(today, p.tanggalSelesai) <= HARI_PERINGATAN) {
+      akanKeluar++; // sudah mulai, mendekati selesai
+    } else {
+      magang++; // sedang magang
+    }
+  }
+
+  return { mendaftar, diterima, magang, akanKeluar };
 }
