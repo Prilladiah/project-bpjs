@@ -1,10 +1,12 @@
 import { listPendaftar, statusOf, type Pendaftar } from "@/lib/pendaftar";
 
+export const dynamic = "force-dynamic";
+
 // Nama tampil di tabel publik selama sekian hari setelah diterima
 const HARI_TAMPIL = 7;
 
 const masihTampil = (p: Pendaftar) =>
-  Date.now() - new Date(p.diterimaPada ?? p.waktu).getTime() <= HARI_TAMPIL * 86_400_000;
+  Date.now() - new Date(p.diterimaPada ?? p.waktu).getTime() < HARI_TAMPIL * 86_400_000;
 
 export default async function DiterimaSection() {
   let data: Pendaftar[] = [];
