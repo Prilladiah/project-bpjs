@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 const tabs = [
   { href: "/admin", label: "Kelola konten" },
@@ -13,9 +13,17 @@ const tabs = [
 
 export default function AdminNav() {
   const path = usePathname();
+  const router = useRouter();
+
+  async function logout() {
+    await fetch("/api/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <nav className="border-b border-edge bg-white" aria-label="Menu admin">
-      <div className="mx-auto flex max-w-6xl justify-start gap-1 overflow-x-auto px-2 sm:justify-center sm:px-5">
+      <div className="mx-auto flex max-w-6xl items-center justify-start gap-1 overflow-x-auto px-2 sm:justify-center sm:px-5">
         {tabs.map((t) => {
           const active = t.href === "/admin" ? path === "/admin" : path.startsWith(t.href);
           return (
@@ -30,6 +38,9 @@ export default function AdminNav() {
             </Link>
           );
         })}
+        <button onClick={logout} className="btn btn-primary ml-3 shrink-0 !py-2">
+          Keluar
+        </button>
       </div>
     </nav>
   );

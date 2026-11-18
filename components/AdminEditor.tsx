@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Content } from "@/types/content";
 
 function Group({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
@@ -46,7 +45,6 @@ const Num = ({ n }: { n: number }) => (
 );
 
 export default function AdminEditor({ initial }: { initial: Content }) {
-  const router = useRouter();
   const [c, setC] = useState<Content>(initial);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -64,12 +62,6 @@ export default function AdminEditor({ initial }: { initial: Content }) {
     setMsg(r?.ok ? { ok: true, text: "Tersimpan. Halaman publik sudah diperbarui." } : { ok: false, text: "Gagal menyimpan." });
   }
 
-  async function logout() {
-    await fetch("/api/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
     <div className="mx-auto max-w-6xl space-y-5 px-5 pb-12 pt-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -81,7 +73,6 @@ export default function AdminEditor({ initial }: { initial: Content }) {
             </span>
           )}
           <a href="/" target="_blank" className="btn border border-edge bg-white">Lihat situs</a>
-          <button onClick={logout} className="btn border border-edge bg-white">Keluar</button>
           <button onClick={save} disabled={busy} className="btn btn-primary disabled:opacity-60">
             {busy ? "Menyimpan…" : "Simpan"}
           </button>

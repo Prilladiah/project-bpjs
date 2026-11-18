@@ -14,8 +14,6 @@ const MAPS: [string, string][] = [
 ];
 
 // Pengali skala ikon program supaya semua ikon terlihat sama besar.
-// Ikon yang punya ruang kosong lebih banyak di dalam filenya diberi skala > 1.
-// Ubah angkanya kalau masih terlalu kecil / terlalu besar.
 const SKALA_IKON: Record<string, number> = {
   JKK: 1.25,
   JHT: 1.6,
@@ -59,7 +57,7 @@ export function Hero({ c }: { c: Content }) {
 
 export function Program({ c }: { c: Content }) {
   return (
-    <section id="program" className={`${wrap} pt-16`}>
+    <section id="program" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Program</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {c.program.map((p, i) => (
@@ -90,7 +88,7 @@ export function Program({ c }: { c: Content }) {
 
 export function VisiMisi({ c }: { c: Content }) {
   return (
-    <section id="visi" className={`${wrap} pt-16`}>
+    <section id="visi-misi" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Visi &amp; Misi</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <div className="card p-6">
@@ -117,7 +115,7 @@ export function VisiMisi({ c }: { c: Content }) {
 
 export function Informasi({ c }: { c: Content }) {
   return (
-    <section id="informasi" className={`${wrap} pt-16`}>
+    <section id="informasi" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Informasi</h2>
       <div className="card mt-6 divide-y divide-edge">
         {c.informasi.map((t, i) => (
@@ -137,7 +135,7 @@ export function Informasi({ c }: { c: Content }) {
 
 export function Kontak({ c }: { c: Content }) {
   return (
-    <section id="kontak" className={`${wrap} pt-16`}>
+    <section id="kontak" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Kontak</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {c.kontak.map((k, i) => (
@@ -155,7 +153,7 @@ export function Kontak({ c }: { c: Content }) {
 
 export function Alamat({ c }: { c: Content }) {
   return (
-    <section id="alamat" className={`${wrap} pt-16`}>
+    <section id="alamat" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Alamat</h2>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         {c.alamat.map((a, i) => (
@@ -178,7 +176,7 @@ export function Alamat({ c }: { c: Content }) {
 
 export function Magang({ c: _c }: { c: Content }) {
   return (
-    <section id="magang" className={`${wrap} pt-16`}>
+    <section id="magang" className={`${wrap} scroll-mt-20 pt-16`}>
       <h2 className="text-3xl font-extrabold">Magang</h2>
       <div className="card mt-6 p-6">
         <Link href="/daftar" className="font-semibold text-sea hover:underline">Klik untuk Mendaftar</Link>
